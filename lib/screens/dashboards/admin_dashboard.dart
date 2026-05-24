@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/api_service.dart';
 import '../../widgets/admin_drawer.dart';
+import '../../routes.dart';
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
@@ -267,12 +268,12 @@ class _AdminDashboardState extends State<AdminDashboard> {
                       crossAxisSpacing: 12,
                       childAspectRatio: 1.1,
                       children: [
-                        _buildQuickAction('Users', Icons.people_rounded, const Color(0xFF10B981), '/admin/users'),
-                        _buildQuickAction('Midwives', Icons.medical_services_rounded, const Color(0xFF14B8A6), '/admin/midwives'),
-                        _buildQuickAction('Barangays', Icons.location_on_rounded, const Color(0xFF3B82F6), '/admin/barangays'),
-                        _buildQuickAction('Reports', Icons.assessment_rounded, const Color(0xFF8B5CF6), '/admin/reports'),
-                        _buildQuickAction('Pending', Icons.pending_actions_rounded, const Color(0xFFF59E0B), '/admin/pending'),
-                        _buildQuickAction('Audit Logs', Icons.history_rounded, const Color(0xFFF97316), '/admin/logs'),
+                        _buildQuickAction('Midwives', Icons.medical_services_rounded, const Color(0xFF14B8A6), Routes.manageMidwives),
+                        _buildQuickAction('Pending', Icons.pending_actions_rounded, const Color(0xFFF59E0B), Routes.pendingAccounts),
+                        _buildQuickAction('Barangays', Icons.location_on_rounded, const Color(0xFF3B82F6), Routes.manageBarangays),
+                        _buildQuickAction('Reports', Icons.assessment_rounded, const Color(0xFF8B5CF6), Routes.reportsPage),
+                        _buildQuickAction('Alerts', Icons.notifications_active_rounded, const Color(0xFF10B981), Routes.adminAlerts),
+                        _buildQuickAction('Audit Logs', Icons.history_rounded, const Color(0xFFF97316), Routes.auditLogs),
                       ],
                     ),
                   ],
@@ -491,10 +492,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
   Widget _buildQuickAction(String title, IconData icon, Color color, String route) {
     return InkWell(
       onTap: () {
-        // Navigator.pushNamed(context, route);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('$title - Coming soon'), backgroundColor: color),
-        );
+        Navigator.pushNamed(context, route);
       },
       child: Container(
         decoration: BoxDecoration(

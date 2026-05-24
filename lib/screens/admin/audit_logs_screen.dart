@@ -662,20 +662,27 @@ class _AuditLogsScreenState extends State<AuditLogsScreen> {
                                     Row(
                                       children: [
                                         Expanded(
+                                          flex: 2,
                                           child: Text(
                                             _formatTableName(log['table_name']),
                                             style: const TextStyle(
                                               fontSize: 13,
                                               color: Colors.black87,
                                             ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
                                           ),
                                         ),
-                                        Text(
-                                          'ID: #${log['record_id'] ?? 'N/A'}',
-                                          style: const TextStyle(
-                                            fontSize: 12,
-                                            fontFamily: 'monospace',
-                                            color: Colors.grey,
+                                        const SizedBox(width: 8),
+                                        Flexible(
+                                          child: Text(
+                                            'ID: #${log['record_id'] ?? 'N/A'}',
+                                            style: const TextStyle(
+                                              fontSize: 12,
+                                              fontFamily: 'monospace',
+                                              color: Colors.grey,
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
                                           ),
                                         ),
                                       ],

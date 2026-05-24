@@ -50,7 +50,7 @@ class _PendingAccountsScreenState extends State<PendingAccountsScreen> {
 
   List<dynamic> get _filteredAccounts {
     var filtered = _accounts.where((account) {
-      final name = '${account['first_name'] ?? ''} ${account['last_name'] ?? ''}'.toLowerCase();
+      final name = (account['name'] ?? '').toLowerCase();
       final email = (account['email'] ?? '').toLowerCase();
       return name.contains(_searchQuery.toLowerCase()) || email.contains(_searchQuery.toLowerCase());
     }).toList();
@@ -62,9 +62,9 @@ class _PendingAccountsScreenState extends State<PendingAccountsScreen> {
         case 'oldest':
           return DateTime.parse(a['created_at']).compareTo(DateTime.parse(b['created_at']));
         case 'name-asc':
-          return '${a['first_name']} ${a['last_name']}'.compareTo('${b['first_name']} ${b['last_name']}');
+          return (a['name'] ?? '').compareTo(b['name'] ?? '');
         case 'name-desc':
-          return '${b['first_name']} ${b['last_name']}'.compareTo('${a['first_name']} ${a['last_name']}');
+          return (b['name'] ?? '').compareTo(a['name'] ?? '');
         default:
           return 0;
       }
@@ -93,8 +93,13 @@ class _PendingAccountsScreenState extends State<PendingAccountsScreen> {
     return Color(0xFFEF4444);
   }
 
-  String _getInitials(String firstName, String lastName) {
-    return '${firstName[0]}${lastName[0]}'.toUpperCase();
+  String _getInitials(String name) {
+    if (name.isEmpty) return '??';
+    final parts = name.trim().split(' ');
+    if (parts.length >= 2) {
+      return '${parts[0][0]}${parts[parts.length - 1][0]}'.toUpperCase();
+    }
+    return name.substring(0, name.length >= 2 ? 2 : 1).toUpperCase();
   }
 
   void _showApprovalModal(dynamic account) {
@@ -135,7 +140,7 @@ class _PendingAccountsScreenState extends State<PendingAccountsScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text('Assign Barangays', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                          Text('${account['first_name']} ${account['last_name']}', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                          Text(account['name'] ?? '', style: TextStyle(fontSize: 12, color: Colors.grey)),
                         ],
                       ),
                     ),
@@ -458,14 +463,13 @@ class _PendingAccountsScreenState extends State<PendingAccountsScreen> {
   }
 
   Widget _buildAccountCard(dynamic account) {
-    final firstName = account['first_name'] ?? '';
-    final lastName = account['last_name'] ?? '';
+    final name = account['name'] ?? '';
     final email = account['email'] ?? '';
     final contactNumber = account['contact_number'] ?? '';
     final createdAt = account['created_at'] ?? '';
     final waitingTime = _getWaitingTime(createdAt);
     final waitingColor = _getWaitingColor(createdAt);
-    final initials = _getInitials(firstName, lastName);
+    final initials = _getInitials(name);
     final isProcessing = _processingId == account['id'];
     
     return Container(
@@ -499,7 +503,7 @@ class _PendingAccountsScreenState extends State<PendingAccountsScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('$firstName $lastName', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1F2937))),
+                      Text(name, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1F2937))),
                       SizedBox(height: 2),
                       Text(email, style: TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
                     ],
@@ -550,7 +554,7 @@ class _PendingAccountsScreenState extends State<PendingAccountsScreen> {
                 SizedBox(width: 8),
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: isProcessing ? null : () => _handleReject(account['id'], '$firstName $lastName'),
+                    onPressed: isProcessing ? null : () => _handleReject(account['id'], name),
                     icon: Icon(Icons.cancel, size: 16),
                     label: Text('Reject'),
                     style: OutlinedButton.styleFrom(

@@ -69,7 +69,12 @@ class ApiService {
             debugPrint('   Response: ${error.response?.data}');
           }
 
-          if (error.response?.statusCode == 401) {
+          // Only clear auth for audit-logs if it's actually unauthorized
+          // Don't clear for other 401s that might be temporary
+          if (error.response?.statusCode == 401 && error.requestOptions.path.contains('/audit-logs')) {
+            // Don't clear auth data, just let the error propagate
+            debugPrint('🔒 Unauthorized on audit-logs - keeping auth data');
+          } else if (error.response?.statusCode == 401) {
             await StorageService.instance.clearAuthData();
             debugPrint('🔒 Unauthorized - Cleared auth data');
           }

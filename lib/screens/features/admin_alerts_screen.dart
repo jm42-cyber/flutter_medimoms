@@ -67,7 +67,10 @@ class _AdminAlertsScreenState extends State<AdminAlertsScreen> with SingleTicker
         headers: {'Authorization': 'Bearer $token'},
       );
       if (response.statusCode == 200) {
-        setState(() => _barangays = json.decode(response.body));
+        final data = json.decode(response.body);
+        // Handle both direct array and {data: []} response
+        final barangaysList = data is List ? data : (data['data'] ?? []);
+        setState(() => _barangays = barangaysList);
       }
     } catch (e) {
       // Silent fail
@@ -78,11 +81,14 @@ class _AdminAlertsScreenState extends State<AdminAlertsScreen> with SingleTicker
     try {
       final token = await StorageService.instance.getToken();
       final response = await http.get(
-        Uri.parse('${AppConfig.apiUrl}/alerts/midwives'),
+        Uri.parse('${AppConfig.apiUrl}/users?role=midwife'),
         headers: {'Authorization': 'Bearer $token'},
       );
       if (response.statusCode == 200) {
-        setState(() => _midwives = json.decode(response.body));
+        final data = json.decode(response.body);
+        // Handle both direct array and {data: []} response
+        final midwifesList = data is List ? data : (data['data'] ?? []);
+        setState(() => _midwives = midwifesList);
       }
     } catch (e) {
       // Silent fail
