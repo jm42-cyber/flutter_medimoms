@@ -20,6 +20,9 @@ class _FamilyPlanningScreenState extends State<FamilyPlanningScreen> {
   String searchQuery = '';
   String filterBarangay = 'all';
   String filterMethod = 'all';
+  List<Map<String, dynamic>> barangays = [];
+  int? selectedBarangayId;
+  String sex = 'Female'; // Default to Female for family planning
 
   // Form controllers - Step 1: Personal Info
   final _formKey = GlobalKey<FormState>();
@@ -71,7 +74,22 @@ class _FamilyPlanningScreenState extends State<FamilyPlanningScreen> {
   @override
   void initState() {
     super.initState();
+    fetchBarangays();
     fetchRecords();
+  }
+
+  Future<void> fetchBarangays() async {
+    try {
+      final response = await ApiService.instance.get('/user/barangays');
+      if (response.statusCode == 200) {
+        final data = response.data;
+        setState(() {
+          barangays = List<Map<String, dynamic>>.from(data['barangays'] ?? []);
+        });
+      }
+    } catch (e) {
+      print('Failed to fetch barangays: $e');
+    }
   }
 
   @override
@@ -170,8 +188,24 @@ class _FamilyPlanningScreenState extends State<FamilyPlanningScreen> {
     dateOfBirthController.text = record['date_of_birth'] ?? '';
     ageController.text = record['age']?.toString() ?? '';
     addressController.text = record['address'] ?? '';
-    barangayController.text = record['barangay'] is Map ? record['barangay']['name'] ?? '' : record['barangay']?.toString() ?? '';
+    
+    // Handle barangay
+    if (record['barangay'] is Map) {
+      selectedBarangayId = record['barangay']['id'];
+      barangayController.text = record['barangay']['name'] ?? '';
+    } else if (record['barangay_id'] != null) {
+      selectedBarangayId = record['barangay_id'];
+    }
+    
     contactController.text = record['contact_number'] ?? '';
+    
+    // Handle sex
+    final sexValue = record['sex'];
+    if (sexValue != null && ['Male', 'Female'].contains(sexValue)) {
+      sex = sexValue;
+    } else {
+      sex = 'Female';
+    }
     
     // Handle civil status
     final civilValue = record['civil_status'];
@@ -256,7 +290,9 @@ class _FamilyPlanningScreenState extends State<FamilyPlanningScreen> {
     ageController.clear();
     addressController.clear();
     barangayController.clear();
+    selectedBarangayId = null;
     contactController.clear();
+    sex = 'Female';
     numberOfChildrenController.clear();
     partnerNameController.clear();
     partnerAgeController.clear();
@@ -297,8 +333,9 @@ class _FamilyPlanningScreenState extends State<FamilyPlanningScreen> {
       'last_name': lastNameController.text,
       'date_of_birth': dateOfBirthController.text,
       'age': int.tryParse(ageController.text),
+      'sex': sex,
       'address': addressController.text,
-      'barangay': barangayController.text,
+      'barangay_id': selectedBarangayId,
       'contact_number': contactController.text,
       'civil_status': civilStatus,
       'number_of_children': int.tryParse(numberOfChildrenController.text),
@@ -769,8 +806,9 @@ class _FamilyPlanningScreenState extends State<FamilyPlanningScreen> {
         _buildTextField('Last Name', lastNameController, required: true),
         _buildDateField('Date of Birth', dateOfBirthController),
         _buildTextField('Age', ageController, keyboardType: TextInputType.number, required: true),
+        _buildDropdown('Sex', sex, ['Male', 'Female'], (val) => setState(() => sex = val!)),
         _buildTextField('Address', addressController, required: true),
-        _buildTextField('Barangay', barangayController, required: true),
+        _buildBarangayDropdown(),
         _buildTextField('Contact Number', contactController, keyboardType: TextInputType.phone),
         _buildDropdown('Civil Status', civilStatus, ['Single', 'Married', 'Live-in', 'Widowed', 'Separated'], (val) => setState(() => civilStatus = val!)),
         _buildTextField('Number of Children', numberOfChildrenController, keyboardType: TextInputType.number),
@@ -891,6 +929,31 @@ class _FamilyPlanningScreenState extends State<FamilyPlanningScreen> {
         ),
         items: items.map((item) => DropdownMenuItem(value: item, child: Text(item))).toList(),
         onChanged: onChanged,
+      ),
+    );
+  }
+
+  Widget _buildBarangayDropdown() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: DropdownButtonFormField<int>(
+        value: selectedBarangayId,
+        decoration: const InputDecoration(
+          labelText: 'Barangay',
+          border: OutlineInputBorder(),
+        ),
+        items: barangays.map((barangay) {
+          return DropdownMenuItem<int>(
+            value: barangay['id'],
+            child: Text(barangay['name'] ?? ''),
+          );
+        }).toList(),
+        onChanged: (value) {
+          setState(() {
+            selectedBarangayId = value;
+          });
+        },
+        validator: (value) => value == null ? 'Please select a barangay' : null,
       ),
     );
   }

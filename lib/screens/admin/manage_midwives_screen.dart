@@ -920,16 +920,25 @@ class _ManageMidwivesScreenState extends State<ManageMidwivesScreen> {
     }
 
     try {
-      final response = await ApiService.instance.post('/admin/midwives', data: {
+      final response = await ApiService.instance.post('/users', data: {
         'first_name': firstName,
         'last_name': lastName,
         'email': email,
+        'username': email.split('@')[0], // Generate username from email
         'password': password,
         'contact_number': contact,
-        'barangay_ids': barangays,
+        'role': 'midwife',
+        'status': 'approved',
       });
 
       if (response.statusCode == 201 || response.statusCode == 200) {
+        // Now assign barangays if any selected
+        if (barangays.isNotEmpty && response.data['id'] != null) {
+          await ApiService.instance.post('/users/${response.data['id']}/approve', data: {
+            'barangays': barangays,
+          });
+        }
+        
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Midwife added successfully'), backgroundColor: Colors.green),

@@ -12,6 +12,7 @@ class MaternalCareScreen extends StatefulWidget {
 
 class _MaternalCareScreenState extends State<MaternalCareScreen> {
   List<dynamic> records = [];
+  List<dynamic> barangays = [];
   bool isLoading = true;
   bool showForm = false;
   Map<String, dynamic>? editingRecord;
@@ -20,6 +21,7 @@ class _MaternalCareScreenState extends State<MaternalCareScreen> {
   String searchQuery = '';
   String filterBarangay = 'all';
   String filterStatus = 'all';
+  int? selectedBarangayId;
 
   // Form controllers - Step 1: Personal Info
   final _formKey = GlobalKey<FormState>();
@@ -67,6 +69,20 @@ class _MaternalCareScreenState extends State<MaternalCareScreen> {
   void initState() {
     super.initState();
     fetchRecords();
+    fetchBarangays();
+  }
+
+  Future<void> fetchBarangays() async {
+    try {
+      final response = await ApiService.instance.get('/user/barangays');
+      if (response.statusCode == 200) {
+        setState(() {
+          barangays = response.data is List ? response.data : (response.data['data'] ?? []);
+        });
+      }
+    } catch (e) {
+      print('Failed to fetch barangays: $e');
+    }
   }
 
   @override
@@ -163,7 +179,14 @@ class _MaternalCareScreenState extends State<MaternalCareScreen> {
     dateOfBirthController.text = record['date_of_birth'] ?? '';
     ageController.text = record['age']?.toString() ?? '';
     addressController.text = record['address'] ?? '';
-    barangayController.text = record['barangay'] is Map ? record['barangay']['name'] ?? '' : record['barangay']?.toString() ?? '';
+    
+    if (record['barangay'] is Map) {
+      selectedBarangayId = record['barangay']['id'];
+      barangayController.text = record['barangay']['name'] ?? '';
+    } else if (record['barangay_id'] != null) {
+      selectedBarangayId = record['barangay_id'];
+    }
+    
     contactController.text = record['contact_number'] ?? '';
     emergencyContactController.text = record['emergency_contact'] ?? '';
     emergencyNameController.text = record['emergency_name'] ?? '';
@@ -221,6 +244,7 @@ class _MaternalCareScreenState extends State<MaternalCareScreen> {
     ageController.clear();
     addressController.clear();
     barangayController.clear();
+    selectedBarangayId = null;
     contactController.clear();
     emergencyContactController.clear();
     emergencyNameController.clear();
@@ -258,7 +282,7 @@ class _MaternalCareScreenState extends State<MaternalCareScreen> {
       'date_of_birth': dateOfBirthController.text,
       'age': int.tryParse(ageController.text),
       'address': addressController.text,
-      'barangay': barangayController.text,
+      'barangay_id': selectedBarangayId,
       'contact_number': contactController.text,
       'emergency_contact': emergencyContactController.text,
       'emergency_name': emergencyNameController.text,
@@ -748,7 +772,7 @@ class _MaternalCareScreenState extends State<MaternalCareScreen> {
         _buildDateField('Date of Birth', dateOfBirthController),
         _buildTextField('Age', ageController, keyboardType: TextInputType.number),
         _buildTextField('Address', addressController, required: true),
-        _buildTextField('Barangay', barangayController, required: true),
+        _buildBarangayDropdown(),
         _buildTextField('Contact Number', contactController, keyboardType: TextInputType.phone),
         _buildTextField('Emergency Contact Name', emergencyNameController),
         _buildTextField('Emergency Contact Number', emergencyContactController, keyboardType: TextInputType.phone),
@@ -860,6 +884,27 @@ class _MaternalCareScreenState extends State<MaternalCareScreen> {
         ),
         items: items.map((item) => DropdownMenuItem(value: item, child: Text(item))).toList(),
         onChanged: onChanged,
+      ),
+    );
+  }
+
+  Widget _buildBarangayDropdown() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: DropdownButtonFormField<int>(
+        value: selectedBarangayId,
+        decoration: const InputDecoration(
+          labelText: 'Barangay',
+          border: OutlineInputBorder(),
+        ),
+        items: barangays.map((barangay) {
+          return DropdownMenuItem<int>(
+            value: barangay['id'],
+            child: Text(barangay['name']),
+          );
+        }).toList(),
+        onChanged: (value) => setState(() => selectedBarangayId = value),
+        validator: (value) => value == null ? 'Required' : null,
       ),
     );
   }
