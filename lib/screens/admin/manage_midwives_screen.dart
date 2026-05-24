@@ -27,7 +27,8 @@ class _ManageMidwivesScreenState extends State<ManageMidwivesScreen> {
     setState(() => _loading = true);
     try {
       print('🚀 Starting to fetch data...');
-      final midwivesResponse = await ApiService.instance.get('/admin/midwives');
+      // Fetch all users with role=midwife (includes all statuses)
+      final midwivesResponse = await ApiService.instance.get('/users?role=midwife');
       print('👥 Midwives Response: ${midwivesResponse.statusCode}');
       
       final barangaysResponse = await ApiService.instance.get('/barangays');
@@ -36,7 +37,10 @@ class _ManageMidwivesScreenState extends State<ManageMidwivesScreen> {
       print('🏘️ Barangays Data Type: ${barangaysResponse.data.runtimeType}');
       
       if (midwivesResponse.statusCode == 200 && barangaysResponse.statusCode == 200) {
-        final midwivesData = midwivesResponse.data is List ? midwivesResponse.data : [];
+        // Handle paginated response from /users endpoint
+        final midwivesData = midwivesResponse.data is Map && midwivesResponse.data.containsKey('data')
+            ? midwivesResponse.data['data']
+            : (midwivesResponse.data is List ? midwivesResponse.data : []);
         
         // Barangays API returns {data: [...]} format
         final barangaysData = barangaysResponse.data is Map && barangaysResponse.data.containsKey('data')
@@ -45,6 +49,18 @@ class _ManageMidwivesScreenState extends State<ManageMidwivesScreen> {
         
         print('📊 Midwives parsed: ${midwivesData.length}');
         print('📊 Barangays parsed: ${barangaysData.length}');
+        
+        // Fetch barangays for each midwife
+        for (var midwife in midwivesData) {
+          try {
+            final barangayResponse = await ApiService.instance.get('/users/${midwife['id']}');
+            if (barangayResponse.statusCode == 200 && barangayResponse.data['barangays'] != null) {
+              midwife['barangays'] = barangayResponse.data['barangays'];
+            }
+          } catch (e) {
+            print('Failed to fetch barangays for midwife ${midwife['id']}: $e');
+          }
+        }
         
         setState(() {
           _midwives = midwivesData;
@@ -79,7 +95,9 @@ class _ManageMidwivesScreenState extends State<ManageMidwivesScreen> {
           midwife['email'].toString().toLowerCase().contains(_searchQuery.toLowerCase());
       
       final midwifeStatus = midwife['status'];
-      final matchesStatus = _filterStatus == 'all' || midwifeStatus == _filterStatus;
+      // Map 'active' filter to 'approved' status in backend
+      final filterToMatch = _filterStatus == 'active' ? 'approved' : _filterStatus;
+      final matchesStatus = _filterStatus == 'all' || midwifeStatus == filterToMatch;
       
       print('👤 ${midwife['first_name']} - Status: $midwifeStatus - Matches: $matchesStatus');
       
@@ -186,7 +204,7 @@ class _ManageMidwivesScreenState extends State<ManageMidwivesScreen> {
               children: [
                 _buildStatChip('Total', _midwives.length, Color(0xFF3B82F6)),
                 SizedBox(width: 8),
-                _buildStatChip('Approved', _midwives.where((m) => m['status'] == 'active').length, Color(0xFF10B981)),
+                _buildStatChip('Approved', _midwives.where((m) => m['status'] == 'approved').length, Color(0xFF10B981)),
                 SizedBox(width: 8),
                 _buildStatChip('Pending', _midwives.where((m) => m['status'] == 'pending').length, Color(0xFFF59E0B)),
                 SizedBox(width: 8),
@@ -355,10 +373,10 @@ class _ManageMidwivesScreenState extends State<ManageMidwivesScreen> {
                       child: OutlinedButton.icon(
                         onPressed: () => _toggleStatus(midwife),
                         icon: Icon(Icons.toggle_on, size: 16),
-                        label: Text(status == 'active' ? 'Deactivate' : status == 'inactive' ? 'Activate' : 'Approve'),
+                        label: Text(status == 'approved' ? 'Deactivate' : status == 'inactive' ? 'Activate' : 'Approve'),
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: status == 'active' ? Color(0xFFEF4444) : Color(0xFF10B981),
-                          side: BorderSide(color: status == 'active' ? Color(0xFFEF4444) : Color(0xFF10B981)),
+                          foregroundColor: status == 'approved' ? Color(0xFFEF4444) : Color(0xFF10B981),
+                          side: BorderSide(color: status == 'approved' ? Color(0xFFEF4444) : Color(0xFF10B981)),
                           padding: EdgeInsets.symmetric(vertical: 8),
                         ),
                       ),
@@ -378,7 +396,7 @@ class _ManageMidwivesScreenState extends State<ManageMidwivesScreen> {
     String label;
     
     switch (status) {
-      case 'active':
+      case 'approved':
         color = Color(0xFF10B981);
         label = 'Approved';
         break;
@@ -719,7 +737,46 @@ class _ManageMidwivesScreenState extends State<ManageMidwivesScreen> {
 
   Future<void> _toggleStatus(dynamic midwife) async {
     final currentStatus = midwife['status'];
-    final newStatus = currentStatus == 'active' ? 'inactive' : 'active';
+    String newStatus;
+    String action;
+    
+    if (currentStatus == 'approved') {
+      newStatus = 'inactive';
+      action = 'deactivate';
+    } else if (currentStatus == 'inactive') {
+      newStatus = 'approved';
+      action = 'activate';
+    } else if (currentStatus == 'pending') {
+      // For pending, show barangay selection dialog
+      final selectedBarangays = await _showBarangaySelectionForApproval();
+      if (selectedBarangays == null || selectedBarangays.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Please select at least one barangay'), backgroundColor: Colors.orange),
+        );
+        return;
+      }
+      
+      try {
+        final response = await ApiService.instance.post('/users/${midwife['id']}/approve', data: {
+          'barangays': selectedBarangays,
+        });
+        
+        if (response.statusCode == 200) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Midwife approved successfully'), backgroundColor: Colors.green),
+          );
+          _fetchData();
+        }
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to approve: $e'), backgroundColor: Colors.red),
+        );
+      }
+      return;
+    } else {
+      newStatus = 'approved';
+      action = 'activate';
+    }
 
     print('🔄 Toggling status from $currentStatus to $newStatus for midwife ID: ${midwife['id']}');
 
@@ -730,7 +787,7 @@ class _ManageMidwivesScreenState extends State<ManageMidwivesScreen> {
 
       if (response.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Status updated successfully'), backgroundColor: Colors.green),
+          SnackBar(content: Text('Midwife ${action}d successfully'), backgroundColor: Colors.green),
         );
         _fetchData();
       }
@@ -740,6 +797,68 @@ class _ManageMidwivesScreenState extends State<ManageMidwivesScreen> {
         SnackBar(content: Text('Failed to update status: $e'), backgroundColor: Colors.red),
       );
     }
+  }
+
+  Future<List<int>?> _showBarangaySelectionForApproval() async {
+    List<int> selectedBarangays = [];
+    
+    if (_barangays.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No barangays available'), backgroundColor: Colors.red),
+      );
+      return null;
+    }
+    
+    return await showDialog<List<int>>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Select Barangays'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('Select 1-3 barangays to assign:', style: TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
+                const SizedBox(height: 12),
+                Flexible(
+                  child: ListView(
+                    shrinkWrap: true,
+                    children: _barangays.map((barangay) => CheckboxListTile(
+                      title: Text(barangay['name'], style: const TextStyle(fontSize: 14)),
+                      value: selectedBarangays.contains(barangay['id']),
+                      onChanged: (checked) {
+                        setState(() {
+                          if (checked == true) {
+                            if (selectedBarangays.length < 3) {
+                              selectedBarangays.add(barangay['id']);
+                            }
+                          } else {
+                            selectedBarangays.remove(barangay['id']);
+                          }
+                        });
+                      },
+                      dense: true,
+                    )).toList(),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, null),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: selectedBarangays.isEmpty ? null : () => Navigator.pop(context, selectedBarangays),
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF10B981)),
+              child: const Text('Approve'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   String _formatDate(String? dateString) {

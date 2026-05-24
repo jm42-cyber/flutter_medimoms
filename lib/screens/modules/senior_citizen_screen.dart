@@ -83,8 +83,13 @@ class _SeniorCitizenScreenState extends State<SeniorCitizenScreen> {
     try {
       final response = await ApiService.instance.get('/user/barangays');
       if (response.statusCode == 200) {
+        final data = response.data;
         setState(() {
-          barangays = response.data is List ? response.data : (response.data['data'] ?? []);
+          if (data is Map && data.containsKey('barangays')) {
+            barangays = List<dynamic>.from(data['barangays']);
+          } else if (data is List) {
+            barangays = data;
+          }
         });
       }
     } catch (e) {
@@ -351,7 +356,7 @@ class _SeniorCitizenScreenState extends State<SeniorCitizenScreen> {
       'last_name': lastNameController.text,
       'date_of_birth': dateOfBirthController.text,
       'age': int.tryParse(ageController.text),
-      'gender': gender,
+      'sex': gender,
       'civil_status': civilStatus,
       'address': addressController.text,
       'barangay_id': selectedBarangayId,

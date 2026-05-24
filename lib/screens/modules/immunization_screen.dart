@@ -135,7 +135,11 @@ class _ImmunizationScreenState extends State<ImmunizationScreen> {
       if (response.statusCode == 200) {
         final data = response.data;
         setState(() {
-          barangays = List<Map<String, dynamic>>.from(data['barangays'] ?? []);
+          if (data is Map && data.containsKey('barangays')) {
+            barangays = List<Map<String, dynamic>>.from(data['barangays']);
+          } else if (data is List) {
+            barangays = List<Map<String, dynamic>>.from(data);
+          }
         });
       }
     } catch (e) {

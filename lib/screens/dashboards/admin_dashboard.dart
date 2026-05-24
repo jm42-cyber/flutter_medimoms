@@ -57,8 +57,22 @@ class _AdminDashboardState extends State<AdminDashboard> {
   }
 
   Future<void> _handleApprove(int userId) async {
+    // Show barangay selection dialog before approving
+    final selectedBarangays = await _showBarangaySelectionDialog();
+    
+    if (selectedBarangays == null || selectedBarangays.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please select at least one barangay'), backgroundColor: Colors.orange),
+        );
+      }
+      return;
+    }
+    
     try {
-      await ApiService.instance.post('/users/$userId/approve');
+      await ApiService.instance.post('/users/$userId/approve', data: {
+        'barangays': selectedBarangays,
+      });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Midwife approved successfully!'), backgroundColor: Colors.green),
@@ -72,6 +86,83 @@ class _AdminDashboardState extends State<AdminDashboard> {
         );
       }
     }
+  }
+
+  Future<List<int>?> _showBarangaySelectionDialog() async {
+    List<int> selectedBarangays = [];
+    List<dynamic> barangays = [];
+    
+    // Fetch barangays
+    try {
+      final response = await ApiService.instance.get('/barangays');
+      if (response.statusCode == 200) {
+        final data = response.data;
+        barangays = data is Map && data.containsKey('data') ? data['data'] : (data is List ? data : []);
+      }
+    } catch (e) {
+      print('Failed to fetch barangays: $e');
+      return null;
+    }
+    
+    if (barangays.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No barangays available'), backgroundColor: Colors.red),
+        );
+      }
+      return null;
+    }
+    
+    return await showDialog<List<int>>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Select Barangays'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('Select 1-3 barangays to assign:', style: TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
+                const SizedBox(height: 12),
+                Flexible(
+                  child: ListView(
+                    shrinkWrap: true,
+                    children: barangays.map((barangay) => CheckboxListTile(
+                      title: Text(barangay['name'], style: const TextStyle(fontSize: 14)),
+                      value: selectedBarangays.contains(barangay['id']),
+                      onChanged: (checked) {
+                        setState(() {
+                          if (checked == true) {
+                            if (selectedBarangays.length < 3) {
+                              selectedBarangays.add(barangay['id']);
+                            }
+                          } else {
+                            selectedBarangays.remove(barangay['id']);
+                          }
+                        });
+                      },
+                      dense: true,
+                    )).toList(),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, null),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: selectedBarangays.isEmpty ? null : () => Navigator.pop(context, selectedBarangays),
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF10B981)),
+              child: const Text('Approve'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> _handleReject(int userId) async {

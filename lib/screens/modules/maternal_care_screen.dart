@@ -76,8 +76,13 @@ class _MaternalCareScreenState extends State<MaternalCareScreen> {
     try {
       final response = await ApiService.instance.get('/user/barangays');
       if (response.statusCode == 200) {
+        final data = response.data;
         setState(() {
-          barangays = response.data is List ? response.data : (response.data['data'] ?? []);
+          if (data is Map && data.containsKey('barangays')) {
+            barangays = List<dynamic>.from(data['barangays']);
+          } else if (data is List) {
+            barangays = data;
+          }
         });
       }
     } catch (e) {
