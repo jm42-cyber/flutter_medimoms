@@ -582,8 +582,9 @@ class _SeniorCitizenScreenState extends State<SeniorCitizenScreen> {
               : records.isEmpty
                   ? const Center(child: Text('No records found'))
                   : SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: DataTable(
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: DataTable(
                         columns: const [
                           DataColumn(label: Text('Name')),
                           DataColumn(label: Text('Age')),
@@ -649,6 +650,7 @@ class _SeniorCitizenScreenState extends State<SeniorCitizenScreen> {
                         }).toList(),
                       ),
                     ),
+                  ),
         ),
         _buildPagination(),
       ],
@@ -710,24 +712,33 @@ class _SeniorCitizenScreenState extends State<SeniorCitizenScreen> {
 
   Widget _buildPagination() {
     return Padding(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           IconButton(
-            icon: const Icon(Icons.chevron_left),
+            icon: const Icon(Icons.chevron_left, size: 20),
             onPressed: currentPage > 1 ? () {
               setState(() => currentPage--);
               fetchRecords();
             } : null,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
           ),
-          Text('Page $currentPage of $totalPages'),
+          const SizedBox(width: 8),
+          Text(
+            'Page $currentPage of $totalPages',
+            style: const TextStyle(fontSize: 12),
+          ),
+          const SizedBox(width: 8),
           IconButton(
-            icon: const Icon(Icons.chevron_right),
+            icon: const Icon(Icons.chevron_right, size: 20),
             onPressed: currentPage < totalPages ? () {
               setState(() => currentPage++);
               fetchRecords();
             } : null,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
           ),
         ],
       ),

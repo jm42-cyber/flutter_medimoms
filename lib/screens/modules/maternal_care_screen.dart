@@ -507,8 +507,9 @@ class _MaternalCareScreenState extends State<MaternalCareScreen> {
               : records.isEmpty
                   ? const Center(child: Text('No records found'))
                   : SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: DataTable(
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: DataTable(
                         columns: const [
                           DataColumn(label: Text('Name')),
                           DataColumn(label: Text('Age')),
@@ -574,6 +575,7 @@ class _MaternalCareScreenState extends State<MaternalCareScreen> {
                         }).toList(),
                       ),
                     ),
+                  ),
         ),
         _buildPagination(),
       ],
@@ -601,7 +603,7 @@ class _MaternalCareScreenState extends State<MaternalCareScreen> {
           onPressed: () => _showForm(),
           icon: const Icon(Icons.add),
           label: const Text('Add Record'),
-          style: ElevatedButton.styleFrom(backgroundColor: Colors.pink),
+          style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFEC4899)),
         ),
         const SizedBox(width: 8),
         PopupMenuButton(
@@ -633,24 +635,33 @@ class _MaternalCareScreenState extends State<MaternalCareScreen> {
 
   Widget _buildPagination() {
     return Padding(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           IconButton(
-            icon: const Icon(Icons.chevron_left),
+            icon: const Icon(Icons.chevron_left, size: 20),
             onPressed: currentPage > 1 ? () {
               setState(() => currentPage--);
               fetchRecords();
             } : null,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
           ),
-          Text('Page $currentPage of $totalPages'),
+          const SizedBox(width: 8),
+          Text(
+            'Page $currentPage of $totalPages',
+            style: const TextStyle(fontSize: 12),
+          ),
+          const SizedBox(width: 8),
           IconButton(
-            icon: const Icon(Icons.chevron_right),
+            icon: const Icon(Icons.chevron_right, size: 20),
             onPressed: currentPage < totalPages ? () {
               setState(() => currentPage++);
               fetchRecords();
             } : null,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
           ),
         ],
       ),
@@ -695,7 +706,7 @@ class _MaternalCareScreenState extends State<MaternalCareScreen> {
             children: [
               Container(
                 height: 4,
-                color: isCompleted || isActive ? Colors.pink : Colors.grey[300],
+                color: isCompleted || isActive ? const Color(0xFFEC4899) : Colors.grey[300],
               ),
               const SizedBox(height: 8),
               Text(
@@ -703,7 +714,7 @@ class _MaternalCareScreenState extends State<MaternalCareScreen> {
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-                  color: isActive ? Colors.pink : Colors.grey,
+                  color: isActive ? const Color(0xFFEC4899) : Colors.grey,
                 ),
               ),
             ],
@@ -871,13 +882,13 @@ class _MaternalCareScreenState extends State<MaternalCareScreen> {
               if (currentStep < 3)
                 ElevatedButton(
                   onPressed: () => setState(() => currentStep++),
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.pink),
+                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFEC4899)),
                   child: const Text('Next'),
                 )
               else
                 ElevatedButton(
                   onPressed: _saveRecord,
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.pink),
+                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFEC4899)),
                   child: const Text('Save Record'),
                 ),
             ],

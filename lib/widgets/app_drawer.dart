@@ -43,13 +43,36 @@ class AppDrawer extends StatelessWidget {
                   ),
                   _buildDrawerItem(
                     context,
+                    icon: Icons.health_and_safety_rounded,
+                    title: 'Immunization',
+                    route: Routes.immunization,
+                    subtitle: 'Child care & vaccination',
+                    isSelected: ModalRoute.of(context)?.settings.name ==
+                        Routes.immunization,
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF10B981), Color(0xFF34D399)],
+                    ),
+                  ),
+                  _buildDrawerItem(
+                    context,
+                    icon: Icons.family_restroom_rounded,
+                    title: 'Family Planning',
+                    route: Routes.familyPlanning,
+                    isSelected: ModalRoute.of(context)?.settings.name ==
+                        Routes.familyPlanning,
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF3B82F6), Color(0xFF60A5FA)],
+                    ),
+                  ),
+                  _buildDrawerItem(
+                    context,
                     icon: Icons.pregnant_woman_rounded,
                     title: 'Maternal Care',
                     route: Routes.maternalCare,
                     isSelected: ModalRoute.of(context)?.settings.name ==
                         Routes.maternalCare,
                     gradient: const LinearGradient(
-                      colors: [Color(0xFF10B981), Color(0xFF34D399)],
+                      colors: [Color(0xFFEC4899), Color(0xFFF472B6)],
                     ),
                   ),
                   _buildDrawerItem(
@@ -60,26 +83,7 @@ class AppDrawer extends StatelessWidget {
                     isSelected: ModalRoute.of(context)?.settings.name ==
                         Routes.seniorCitizen,
                     gradient: const LinearGradient(
-                      colors: [Color(0xFF3B82F6), Color(0xFF60A5FA)],
-                    ),
-                  ),
-                  _buildDrawerItem(
-                    context,
-                    icon: Icons.health_and_safety_rounded,
-                    title: 'Immunization',
-                    route: Routes.immunization,
-                    subtitle: 'Child care & vaccination',
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF06B6D4), Color(0xFF0891B2)],
-                    ),
-                  ),
-                  _buildDrawerItem(
-                    context,
-                    icon: Icons.family_restroom_rounded,
-                    title: 'Family Planning',
-                    route: Routes.familyPlanning,
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF8B5CF6), Color(0xFFA78BFA)],
+                      colors: [Color(0xFFF97316), Color(0xFFFB923C)],
                     ),
                   ),
                   const Padding(

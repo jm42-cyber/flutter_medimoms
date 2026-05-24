@@ -550,8 +550,9 @@ class _FamilyPlanningScreenState extends State<FamilyPlanningScreen> {
               : records.isEmpty
                   ? const Center(child: Text('No records found'))
                   : SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: DataTable(
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: DataTable(
                         columns: const [
                           DataColumn(label: Text('Name')),
                           DataColumn(label: Text('Age')),
@@ -597,6 +598,7 @@ class _FamilyPlanningScreenState extends State<FamilyPlanningScreen> {
                         }).toList(),
                       ),
                     ),
+                  ),
         ),
         _buildPagination(),
       ],
@@ -624,7 +626,7 @@ class _FamilyPlanningScreenState extends State<FamilyPlanningScreen> {
           onPressed: () => _showForm(),
           icon: const Icon(Icons.add),
           label: const Text('Add Record'),
-          style: ElevatedButton.styleFrom(backgroundColor: Colors.purple),
+          style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF3B82F6)),
         ),
         const SizedBox(width: 8),
         PopupMenuButton(
@@ -646,33 +648,42 @@ class _FamilyPlanningScreenState extends State<FamilyPlanningScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.purple.withOpacity(0.2),
+        color: const Color(0xFF3B82F6).withOpacity(0.2),
         borderRadius: BorderRadius.circular(12),
       ),
-      child: Text(method ?? '', style: const TextStyle(color: Colors.purple, fontSize: 12)),
+      child: Text(method ?? '', style: const TextStyle(color: Color(0xFF3B82F6), fontSize: 12)),
     );
   }
 
   Widget _buildPagination() {
     return Padding(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           IconButton(
-            icon: const Icon(Icons.chevron_left),
+            icon: const Icon(Icons.chevron_left, size: 20),
             onPressed: currentPage > 1 ? () {
               setState(() => currentPage--);
               fetchRecords();
             } : null,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
           ),
-          Text('Page $currentPage of $totalPages'),
+          const SizedBox(width: 8),
+          Text(
+            'Page $currentPage of $totalPages',
+            style: const TextStyle(fontSize: 12),
+          ),
+          const SizedBox(width: 8),
           IconButton(
-            icon: const Icon(Icons.chevron_right),
+            icon: const Icon(Icons.chevron_right, size: 20),
             onPressed: currentPage < totalPages ? () {
               setState(() => currentPage++);
               fetchRecords();
             } : null,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
           ),
         ],
       ),
@@ -717,7 +728,7 @@ class _FamilyPlanningScreenState extends State<FamilyPlanningScreen> {
             children: [
               Container(
                 height: 4,
-                color: isCompleted || isActive ? Colors.purple : Colors.grey[300],
+                color: isCompleted || isActive ? const Color(0xFF3B82F6) : Colors.grey[300],
               ),
               const SizedBox(height: 8),
               Text(
@@ -725,7 +736,7 @@ class _FamilyPlanningScreenState extends State<FamilyPlanningScreen> {
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-                  color: isActive ? Colors.purple : Colors.grey,
+                  color: isActive ? const Color(0xFF3B82F6) : Colors.grey,
                 ),
               ),
             ],
@@ -902,13 +913,13 @@ class _FamilyPlanningScreenState extends State<FamilyPlanningScreen> {
               if (currentStep < 3)
                 ElevatedButton(
                   onPressed: () => setState(() => currentStep++),
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.purple),
+                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF3B82F6)),
                   child: const Text('Next'),
                 )
               else
                 ElevatedButton(
                   onPressed: _saveRecord,
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.purple),
+                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF3B82F6)),
                   child: const Text('Save Record'),
                 ),
             ],

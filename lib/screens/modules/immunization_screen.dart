@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'dart:async';
 import '../../services/api_service.dart';
 import '../../widgets/dashboard_layout.dart';
 
@@ -17,8 +18,12 @@ class _ImmunizationScreenState extends State<ImmunizationScreen> {
   Map<String, dynamic>? editingRecord;
   int currentPage = 1;
   int totalPages = 1;
+  int totalRecords = 0;
   String searchQuery = '';
   String filterBarangay = 'all';
+  List<Map<String, dynamic>> barangays = [];
+  int? selectedBarangayId;
+  Timer? _debounce;
 
   // Form controllers - Step 1: Personal & Parent Info
   final _formKey = GlobalKey<FormState>();
@@ -74,11 +79,13 @@ class _ImmunizationScreenState extends State<ImmunizationScreen> {
   @override
   void initState() {
     super.initState();
+    fetchBarangays();
     fetchRecords();
   }
 
   @override
   void dispose() {
+    _debounce?.cancel();
     firstNameController.dispose();
     middleNameController.dispose();
     lastNameController.dispose();
@@ -122,6 +129,20 @@ class _ImmunizationScreenState extends State<ImmunizationScreen> {
     super.dispose();
   }
 
+  Future<void> fetchBarangays() async {
+    try {
+      final response = await ApiService.instance.get('/user/barangays');
+      if (response.statusCode == 200) {
+        final data = response.data;
+        setState(() {
+          barangays = List<Map<String, dynamic>>.from(data['barangays'] ?? []);
+        });
+      }
+    } catch (e) {
+      print('Failed to fetch barangays: $e');
+    }
+  }
+
   Future<void> fetchRecords() async {
     setState(() => isLoading = true);
     try {
@@ -151,6 +172,7 @@ class _ImmunizationScreenState extends State<ImmunizationScreen> {
         setState(() {
           records = fetchedRecords;
           totalPages = (data is Map && data.containsKey('last_page')) ? data['last_page'] ?? 1 : 1;
+          totalRecords = (data is Map && data.containsKey('total')) ? data['total'] ?? 0 : fetchedRecords.length;
           isLoading = false;
         });
       } else {
@@ -189,17 +211,18 @@ class _ImmunizationScreenState extends State<ImmunizationScreen> {
               : records.isEmpty
                   ? const Center(child: Text('No records found'))
                   : SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: DataTable(
-                        columns: const [
-                          DataColumn(label: Text('Child Name')),
-                          DataColumn(label: Text('Sex')),
-                          DataColumn(label: Text('Date of Birth')),
-                          DataColumn(label: Text('Mother Name')),
-                          DataColumn(label: Text('Barangay')),
-                          DataColumn(label: Text('Actions')),
-                        ],
-                        rows: records.map((record) {
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: DataTable(
+                          columns: const [
+                            DataColumn(label: Text('Child Name')),
+                            DataColumn(label: Text('Sex')),
+                            DataColumn(label: Text('Date of Birth')),
+                            DataColumn(label: Text('Mother Name')),
+                            DataColumn(label: Text('Barangay')),
+                            DataColumn(label: Text('Actions')),
+                          ],
+                          rows: records.map((record) {
                           return DataRow(cells: [
                             DataCell(Text('${record['first_name']} ${record['last_name']}')),
                             DataCell(Text(record['sex'] ?? '')),
@@ -231,7 +254,8 @@ class _ImmunizationScreenState extends State<ImmunizationScreen> {
                               ],
                             )),
                           ]);
-                        }).toList(),
+                          }).toList(),
+                        ),
                       ),
                     ),
         ),
@@ -245,14 +269,21 @@ class _ImmunizationScreenState extends State<ImmunizationScreen> {
       children: [
         Expanded(
           child: TextField(
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               hintText: 'Search by name...',
-              prefixIcon: Icon(Icons.search),
-              border: OutlineInputBorder(),
+              prefixIcon: const Icon(Icons.search),
+              border: const OutlineInputBorder(),
+              suffixText: totalRecords > 0 ? '$totalRecords records' : null,
             ),
             onChanged: (value) {
-              setState(() => searchQuery = value);
-              fetchRecords();
+              if (_debounce?.isActive ?? false) _debounce!.cancel();
+              _debounce = Timer(const Duration(milliseconds: 500), () {
+                setState(() {
+                  searchQuery = value;
+                  currentPage = 1;
+                });
+                fetchRecords();
+              });
             },
           ),
         ),
@@ -261,7 +292,7 @@ class _ImmunizationScreenState extends State<ImmunizationScreen> {
           onPressed: () => _showForm(),
           icon: const Icon(Icons.add),
           label: const Text('Add Record'),
-          style: ElevatedButton.styleFrom(backgroundColor: Colors.cyan),
+          style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF10B981)),
         ),
         const SizedBox(width: 8),
         PopupMenuButton(
@@ -281,24 +312,33 @@ class _ImmunizationScreenState extends State<ImmunizationScreen> {
 
   Widget _buildPagination() {
     return Padding(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           IconButton(
-            icon: const Icon(Icons.chevron_left),
+            icon: const Icon(Icons.chevron_left, size: 20),
             onPressed: currentPage > 1 ? () {
               setState(() => currentPage--);
               fetchRecords();
             } : null,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
           ),
-          Text('Page $currentPage of $totalPages'),
+          const SizedBox(width: 8),
+          Text(
+            'Page $currentPage of $totalPages',
+            style: const TextStyle(fontSize: 12),
+          ),
+          const SizedBox(width: 8),
           IconButton(
-            icon: const Icon(Icons.chevron_right),
+            icon: const Icon(Icons.chevron_right, size: 20),
             onPressed: currentPage < totalPages ? () {
               setState(() => currentPage++);
               fetchRecords();
             } : null,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
           ),
         ],
       ),
@@ -337,7 +377,12 @@ class _ImmunizationScreenState extends State<ImmunizationScreen> {
     motherNameController.text = record['mother_name'] ?? '';
     fatherGuardianController.text = record['father_guardian_name'] ?? '';
     addressController.text = record['address'] ?? '';
-    barangayController.text = record['barangay'] is Map ? record['barangay']['name'] ?? '' : record['barangay']?.toString() ?? '';
+    if (record['barangay'] is Map) {
+      selectedBarangayId = record['barangay']['id'];
+      barangayController.text = record['barangay']['name'] ?? '';
+    } else if (record['barangay_id'] != null) {
+      selectedBarangayId = record['barangay_id'];
+    }
     contactNoController.text = record['contact_no'] ?? '';
     birthWeightController.text = record['birth_weight']?.toString() ?? '';
     birthLengthController.text = record['birth_length']?.toString() ?? '';
@@ -382,6 +427,7 @@ class _ImmunizationScreenState extends State<ImmunizationScreen> {
     fatherGuardianController.clear();
     addressController.clear();
     barangayController.clear();
+    selectedBarangayId = null;
     contactNoController.clear();
     birthWeightController.clear();
     birthLengthController.clear();
@@ -428,7 +474,7 @@ class _ImmunizationScreenState extends State<ImmunizationScreen> {
       'mother_name': motherNameController.text,
       'father_guardian_name': fatherGuardianController.text,
       'address': addressController.text,
-      'barangay': barangayController.text,
+      'barangay_id': selectedBarangayId,
       'contact_no': contactNoController.text,
       'birth_weight': double.tryParse(birthWeightController.text),
       'birth_length': double.tryParse(birthLengthController.text),
@@ -518,7 +564,7 @@ class _ImmunizationScreenState extends State<ImmunizationScreen> {
             children: [
               Container(
                 height: 4,
-                color: isCompleted || isActive ? Colors.cyan : Colors.grey[300],
+                color: isCompleted || isActive ? const Color(0xFF10B981) : Colors.grey[300],
               ),
               const SizedBox(height: 8),
               Text(
@@ -526,7 +572,7 @@ class _ImmunizationScreenState extends State<ImmunizationScreen> {
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-                  color: isActive ? Colors.cyan : Colors.grey,
+                  color: isActive ? const Color(0xFF10B981) : Colors.grey,
                 ),
               ),
             ],
@@ -569,13 +615,13 @@ class _ImmunizationScreenState extends State<ImmunizationScreen> {
               if (currentStep < 3)
                 ElevatedButton(
                   onPressed: () => setState(() => currentStep++),
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.cyan),
+                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF10B981)),
                   child: const Text('Next'),
                 )
               else
                 ElevatedButton(
                   onPressed: _saveRecord,
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.cyan),
+                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF10B981)),
                   child: const Text('Save Record'),
                 ),
             ],
@@ -810,7 +856,7 @@ class _ImmunizationScreenState extends State<ImmunizationScreen> {
     return Column(
       children: [
         _buildTextField('Address', addressController),
-        _buildTextField('Barangay', barangayController, required: true),
+        _buildBarangayDropdown(),
         _buildTextField('Contact Number', contactNoController, keyboardType: TextInputType.phone),
         _buildTextField('Birth Weight (kg)', birthWeightController, keyboardType: TextInputType.number),
         _buildTextField('Birth Length (cm)', birthLengthController, keyboardType: TextInputType.number),
@@ -914,6 +960,31 @@ class _ImmunizationScreenState extends State<ImmunizationScreen> {
         ),
         items: items.map((item) => DropdownMenuItem(value: item, child: Text(item))).toList(),
         onChanged: onChanged,
+      ),
+    );
+  }
+
+  Widget _buildBarangayDropdown() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: DropdownButtonFormField<int>(
+        value: selectedBarangayId,
+        decoration: const InputDecoration(
+          labelText: 'Barangay',
+          border: OutlineInputBorder(),
+        ),
+        items: barangays.map((barangay) {
+          return DropdownMenuItem<int>(
+            value: barangay['id'],
+            child: Text(barangay['name'] ?? ''),
+          );
+        }).toList(),
+        onChanged: (value) {
+          setState(() {
+            selectedBarangayId = value;
+          });
+        },
+        validator: (value) => value == null ? 'Please select a barangay' : null,
       ),
     );
   }

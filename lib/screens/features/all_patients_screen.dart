@@ -44,43 +44,52 @@ class _AllPatientsScreenState extends State<AllPatientsScreen> {
     setState(() => _isLoading = true);
     
     try {
-      // Fetch from all program endpoints
+      // Fetch from all program endpoints with per_page=1000 to get all records
       final responses = await Future.wait([
-        ApiService.instance.get('/immunization-records?status=active'),
-        ApiService.instance.get('/family-planning-records?status=active'),
-        ApiService.instance.get('/maternal-care-records'),
-        ApiService.instance.get('/senior-citizen-records?status=active'),
+        ApiService.instance.get('/immunization-records?status=active&per_page=1000'),
+        ApiService.instance.get('/family-planning-records?status=active&per_page=1000'),
+        ApiService.instance.get('/maternal-care-records?status=active&per_page=1000'),
+        ApiService.instance.get('/senior-citizen-records?status=active&per_page=1000'),
       ]);
 
       final List<Map<String, dynamic>> allPatients = [];
 
       // Process immunization records
       if (responses[0].statusCode == 200) {
-        final data = responses[0].data['data'] as List;
+        final responseData = responses[0].data;
+        final data = responseData is Map && responseData.containsKey('data') 
+            ? responseData['data'] as List 
+            : responseData as List;
         for (var record in data) {
           allPatients.add({
             ...record,
             'program': 'Immunization',
-            'program_color': const Color(0xFF3B82F6),
+            'program_color': const Color(0xFF10B981),
           });
         }
       }
 
       // Process family planning records
       if (responses[1].statusCode == 200) {
-        final data = responses[1].data['data'] as List;
+        final responseData = responses[1].data;
+        final data = responseData is Map && responseData.containsKey('data') 
+            ? responseData['data'] as List 
+            : responseData as List;
         for (var record in data) {
           allPatients.add({
             ...record,
             'program': 'Family Planning',
-            'program_color': const Color(0xFF8B5CF6),
+            'program_color': const Color(0xFF3B82F6),
           });
         }
       }
 
       // Process maternal care records
       if (responses[2].statusCode == 200) {
-        final data = responses[2].data as List;
+        final responseData = responses[2].data;
+        final data = responseData is Map && responseData.containsKey('data') 
+            ? responseData['data'] as List 
+            : responseData as List;
         for (var record in data) {
           allPatients.add({
             ...record,
@@ -92,7 +101,10 @@ class _AllPatientsScreenState extends State<AllPatientsScreen> {
 
       // Process senior citizen records
       if (responses[3].statusCode == 200) {
-        final data = responses[3].data['data'] as List;
+        final responseData = responses[3].data;
+        final data = responseData is Map && responseData.containsKey('data') 
+            ? responseData['data'] as List 
+            : responseData as List;
         for (var record in data) {
           allPatients.add({
             ...record,
@@ -102,6 +114,12 @@ class _AllPatientsScreenState extends State<AllPatientsScreen> {
         }
       }
 
+      print('📊 All Patients loaded: ${allPatients.length} total');
+      print('  - Immunization: ${allPatients.where((p) => p['program'] == 'Immunization').length}');
+      print('  - Family Planning: ${allPatients.where((p) => p['program'] == 'Family Planning').length}');
+      print('  - Maternal Care: ${allPatients.where((p) => p['program'] == 'Maternal Care').length}');
+      print('  - Senior Citizen: ${allPatients.where((p) => p['program'] == 'Senior Citizen').length}');
+
       setState(() {
         _allPatients = allPatients;
         _filteredPatients = allPatients;
@@ -109,6 +127,7 @@ class _AllPatientsScreenState extends State<AllPatientsScreen> {
         _isLoading = false;
       });
     } catch (e) {
+      print('❌ All Patients fetch error: $e');
       setState(() => _isLoading = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
