@@ -214,8 +214,10 @@ class _AuditLogsScreenState extends State<AuditLogsScreen> {
                           Expanded(
                             child: _buildDetailField(
                               'Timestamp',
-                              DateFormat('MMM dd, yyyy HH:mm:ss')
-                                  .format(DateTime.parse(log['timestamp'])),
+                              log['timestamp'] != null
+                                  ? DateFormat('MMM dd, yyyy HH:mm:ss')
+                                      .format(DateTime.parse(log['timestamp']))
+                                  : 'N/A',
                             ),
                           ),
                         ],
@@ -223,8 +225,8 @@ class _AuditLogsScreenState extends State<AuditLogsScreen> {
                       const SizedBox(height: 16),
                       _buildDetailField(
                         'User',
-                        log['user']?['full_name'] ?? 'System',
-                        subtitle: log['user']?['email'] ?? 'N/A',
+                        log['user']?['full_name']?.toString() ?? 'System',
+                        subtitle: log['user']?['email']?.toString() ?? 'N/A',
                       ),
                       const SizedBox(height: 16),
                       Row(
@@ -256,11 +258,11 @@ class _AuditLogsScreenState extends State<AuditLogsScreen> {
                                     borderRadius: BorderRadius.circular(20),
                                   ),
                                   child: Text(
-                                    log['action'].toString().toUpperCase(),
+                                    log['action']?.toString().toUpperCase() ?? 'UNKNOWN',
                                     style: TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.bold,
-                                      color: _getActionColor(log['action']),
+                                      color: _getActionColor(log['action']?.toString() ?? ''),
                                     ),
                                   ),
                                 ),
@@ -271,7 +273,7 @@ class _AuditLogsScreenState extends State<AuditLogsScreen> {
                           Expanded(
                             child: _buildDetailField(
                               'Table Name',
-                              _formatTableName(log['table_name']),
+                              _formatTableName(log['table_name']?.toString() ?? 'N/A'),
                             ),
                           ),
                         ],
@@ -279,7 +281,7 @@ class _AuditLogsScreenState extends State<AuditLogsScreen> {
                       const SizedBox(height: 16),
                       _buildDetailField(
                         'Record ID',
-                        '#${log['record_id'] ?? 'N/A'}',
+                        '#${log['record_id']?.toString() ?? 'N/A'}',
                       ),
                     ],
                   ),
@@ -593,27 +595,29 @@ class _AuditLogsScreenState extends State<AuditLogsScreen> {
                                             vertical: 6,
                                           ),
                                           decoration: BoxDecoration(
-                                            color: _getActionColor(log['action'])
+                                            color: _getActionColor(log['action']?.toString() ?? '')
                                                 .withOpacity(0.1),
                                             border: Border.all(
-                                              color: _getActionColor(log['action']),
+                                              color: _getActionColor(log['action']?.toString() ?? ''),
                                             ),
                                             borderRadius: BorderRadius.circular(20),
                                           ),
                                           child: Text(
-                                            log['action'].toString().toUpperCase(),
+                                            log['action']?.toString().toUpperCase() ?? 'UNKNOWN',
                                             style: TextStyle(
                                               fontSize: 11,
                                               fontWeight: FontWeight.bold,
-                                              color: _getActionColor(log['action']),
+                                              color: _getActionColor(log['action']?.toString() ?? ''),
                                             ),
                                           ),
                                         ),
                                         const Spacer(),
                                         Text(
-                                          DateFormat('MMM dd, HH:mm').format(
-                                            DateTime.parse(log['timestamp']),
-                                          ),
+                                          log['timestamp'] != null
+                                              ? DateFormat('MMM dd, HH:mm').format(
+                                                  DateTime.parse(log['timestamp']),
+                                                )
+                                              : 'N/A',
                                           style: const TextStyle(
                                             fontSize: 12,
                                             color: Colors.grey,
@@ -640,14 +644,14 @@ class _AuditLogsScreenState extends State<AuditLogsScreen> {
                                             crossAxisAlignment: CrossAxisAlignment.start,
                                             children: [
                                               Text(
-                                                log['user']?['full_name'] ?? 'System',
+                                                log['user']?['full_name']?.toString() ?? 'System',
                                                 style: const TextStyle(
                                                   fontWeight: FontWeight.w600,
                                                   fontSize: 14,
                                                 ),
                                               ),
                                               Text(
-                                                log['user']?['email'] ?? 'N/A',
+                                                log['user']?['email']?.toString() ?? 'N/A',
                                                 style: const TextStyle(
                                                   fontSize: 12,
                                                   color: Colors.grey,
@@ -664,7 +668,7 @@ class _AuditLogsScreenState extends State<AuditLogsScreen> {
                                         Expanded(
                                           flex: 2,
                                           child: Text(
-                                            _formatTableName(log['table_name']),
+                                            _formatTableName(log['table_name']?.toString() ?? 'N/A'),
                                             style: const TextStyle(
                                               fontSize: 13,
                                               color: Colors.black87,
@@ -676,7 +680,7 @@ class _AuditLogsScreenState extends State<AuditLogsScreen> {
                                         const SizedBox(width: 8),
                                         Flexible(
                                           child: Text(
-                                            'ID: #${log['record_id'] ?? 'N/A'}',
+                                            'ID: #${log['record_id']?.toString() ?? 'N/A'}',
                                             style: const TextStyle(
                                               fontSize: 12,
                                               fontFamily: 'monospace',

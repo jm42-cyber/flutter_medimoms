@@ -713,15 +713,22 @@ class _ManageMidwivesScreenState extends State<ManageMidwivesScreen> {
     }
 
     try {
-      final response = await ApiService.instance.put('/admin/midwives/$id', data: {
+      // Update user details
+      final response = await ApiService.instance.put('/users/$id', data: {
         'first_name': firstName,
         'last_name': lastName,
         'email': email,
         'contact_number': contact,
-        'barangay_ids': barangays,
       });
 
       if (response.statusCode == 200) {
+        // Update barangay assignments separately
+        if (barangays.isNotEmpty) {
+          await ApiService.instance.post('/users/$id/approve', data: {
+            'barangays': barangays,
+          });
+        }
+        
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Midwife updated successfully'), backgroundColor: Colors.green),
